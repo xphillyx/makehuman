@@ -87,36 +87,29 @@ def exportStlAscii(filepath, config, exportJoints = False):
     progress(0.3, 0.99, "Writing Objects")
     objprog = Progress(len(meshes))
 
-    def chunked_enumerate(offs, chunk_size, list_):
-        return zip(range(offs, offs + chunk_size), list_[offs:offs + chunk_size])
-
     for mesh in meshes:
         coord = config.scale*mesh.coord + config.offset
-        offs = 0
-        chunk_size = 2000   # The higher the chunk size, the faster, but setting this too high can run into memory errors on some machines
-        meshprog = Progress(math.ceil( float(len(mesh.fvert)) / chunk_size ))
-        while(offs < len(mesh.fvert)):
-            fp.write("".join( [(
+
+        for fn,fv in enumerate(mesh.fvert):
+            fp.write(
                 'facet normal %f %f %f\n' % tuple(mesh.fnorm[fn]) +
                 '\touter loop\n' +
                 '\t\tvertex %f %f %f\n' % tuple(coord[fv[0]]) +
                 '\t\tvertex %f %f %f\n' % tuple(coord[fv[1]]) +
                 '\t\tvertex %f %f %f\n' % tuple(coord[fv[2]]) +
                 '\tendloop\n' +
-                '\tendfacet\n' +
-                'facet normal %f %f %f\n' % tuple(mesh.fnorm[fn]) +
-                '\touter loop\n' +
-                '\t\tvertex %f %f %f\n' % tuple(coord[fv[2]]) +
-                '\t\tvertex %f %f %f\n' % tuple(coord[fv[3]]) +
-                '\t\tvertex %f %f %f\n' % tuple(coord[fv[0]]) +
-                '\tendloop\n' +
-                '\tendfacet\n'
-                ) for fn,fv in chunked_enumerate(offs, chunk_size, mesh.fvert)] ))
-            fp.flush()
-            os.fsync(fp.fileno())
-            offs += chunk_size
-            meshprog.step()
-        meshprog.finish()
+                '\tendfacet\n')
+
+            if (fv[0] != fv[3]):
+                    fp.write(
+                    'facet normal %f %f %f\n' % tuple(mesh.fnorm[fn]) +
+                    '\touter loop\n' +
+                    '\t\tvertex %f %f %f\n' % tuple(coord[fv[2]]) +
+                    '\t\tvertex %f %f %f\n' % tuple(coord[fv[3]]) +
+                    '\t\tvertex %f %f %f\n' % tuple(coord[fv[0]]) +
+                    '\tendloop\n' +
+                    '\tendfacet\n')
+
         objprog.step()
 
     fp.write('endsolid %s\n' % solid)
@@ -162,12 +155,13 @@ def exportStlBinary(filepath, config, exportJoints = False):
             fp.write(struct.pack(b'<H', 0))
             count += 1
 
-            fp.write(struct.pack(b'<fff', fno[0], fno[1], fno[2]))
-            fp.write(struct.pack(b'<fff', co[2][0], co[2][1], co[2][2]))
-            fp.write(struct.pack(b'<fff', co[3][0], co[3][1], co[3][2]))
-            fp.write(struct.pack(b'<fff', co[0][0], co[0][1], co[0][2]))
-            fp.write(struct.pack(b'<H', 0))
-            count += 1
+            if (fv[0] != fv[3]):
+                fp.write(struct.pack(b'<fff', fno[0], fno[1], fno[2]))
+                fp.write(struct.pack(b'<fff', co[2][0], co[2][1], co[2][2]))
+                fp.write(struct.pack(b'<fff', co[3][0], co[3][1], co[3][2]))
+                fp.write(struct.pack(b'<fff', co[0][0], co[0][1], co[0][2]))
+                fp.write(struct.pack(b'<H', 0))
+                count += 1
         objprog.step()
 
     fp.seek(80)
