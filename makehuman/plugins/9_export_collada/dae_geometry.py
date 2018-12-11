@@ -268,8 +268,8 @@ def writePolylist(fp, mesh, config):
 
     for fn,fv in enumerate(mesh.fvert):
         fuv = mesh.fuvs[fn]
-	r = 3 if (fv[0] == fv[3]) else 4
-	vc += str(r) + ' '
+        r = 3 if (fv[0] == fv[3]) else 4
+        vc += str(r) + ' '
         if config.useNormals:
             p += ''.join([("%d %d %d " % (fv[n], fv[n], fuv[n])) for n in range(r)])
         else:
